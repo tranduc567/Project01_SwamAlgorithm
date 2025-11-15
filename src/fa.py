@@ -25,7 +25,6 @@ class FireflyAlgorithm:
         self.dim = dim
         self.distance_matrix = distance_matrix
 
-        # Khởi tạo quần thể
         self.fireflies = []
         self.fitness = []
 
@@ -54,29 +53,23 @@ class FireflyAlgorithm:
 
     def move_firefly(self, xi, xj, beta):
         if self.mode == "discrete":
-            # Di chuyển kiểu swap 2 vị trí gần giống với làm mềm permutation
             xi_new = xi.copy()
-            # Lấy vị trí khác nhau giữa xi và xj
             diff_positions = [idx for idx in range(len(xi)) if xi[idx] != xj[idx]]
             if len(diff_positions) > 1:
-                # Swap 2 vị trí để xi tiến gần xj
                 i, j = random.sample(diff_positions, 2)
                 xi_new[i], xi_new[j] = xi_new[j], xi_new[i]
             return xi_new
         else:
-            # Liên tục: move theo công thức FA chuẩn
             rand = self.alpha * (np.random.rand(self.dim) - 0.5)
             return xi + beta * (xj - xi) + rand
 
     def distance(self, xi, xj):
         if self.mode == "discrete":
-            # Khoảng cách Hamming giữa 2 permutation
             return np.sum(xi != xj)
         else:
             return np.linalg.norm(xi - xj)
 
-    def run(self):
-        # Khởi tạo quần thể
+    def run(self, verbose=False):
         self.fireflies = [self.init_solution() for _ in range(self.num_fireflies)]
         self.fitness = [self.evaluate(f) for f in self.fireflies]
 
@@ -84,7 +77,9 @@ class FireflyAlgorithm:
         best_sol = self.fireflies[best_idx].copy()
         best_val = self.fitness[best_idx]
 
-        for _ in range(self.max_iter):
+        history = []
+
+        for iter in range(self.max_iter):
             for i in range(self.num_fireflies):
                 for j in range(self.num_fireflies):
                     if self.fitness[j] < self.fitness[i]:
@@ -101,4 +96,8 @@ class FireflyAlgorithm:
                                 best_val = new_fit
                                 best_sol = new_sol.copy()
 
-        return best_sol, best_val
+            history.append(best_val)
+            if verbose and (iter % 10 == 0):
+                print(f"Iteration {iter+1}/{self.max_iter}, Best fitness: {best_val:.6f}")
+
+        return best_sol, best_val, history

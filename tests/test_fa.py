@@ -1,79 +1,85 @@
 import time
 import numpy as np
-from src.fa import FireflyAlgorithm  # chắc chắn import đúng
+import matplotlib.pyplot as plt
+from src.fa import FireflyAlgorithm  # Đảm bảo import đúng
 
-def test_fa_tsp(distances, n_runs=5, num_fireflies=25, max_iter=100, alpha=0.5, beta0=1.0, gamma=1.0):
+def test_fa_continuous(n_runs=5, **kwargs):
     results = []
-    for _ in range(n_runs):
-        fa = FireflyAlgorithm(num_fireflies=num_fireflies,
-                              max_iter=max_iter,
-                              alpha=alpha,
-                              beta0=beta0,
-                              gamma=gamma,
-                              mode="discrete",
-                              distance_matrix=distances)
+    histories = []
+    for run in range(n_runs):
+        fa = FireflyAlgorithm(mode="continuous", **kwargs)
         start = time.time()
-        best_path, best_dist = fa.run()
+        best_sol, best_fit, history = fa.run()
         end = time.time()
-        results.append((best_dist, end - start))
-    return results
+        results.append((best_fit, end - start))
+        histories.append(history)
+        print(f"Run {run+1}/{n_runs} done: Best fitness = {best_fit:.6f}, Time = {end-start:.4f}s")
+    return results, histories
 
-def parameter_sensitivity_analysis_fa(distances, param_name, param_values, n_runs=5):
-    print(f"\nParameter Sensitivity Analysis on {param_name} (FA)")
-    print(f"{param_name:<7} | {'Avg Best Dist':<13} | {'Avg Time (s)':<11}")
-    print("-" * 40)
-    for val in param_values:
-        best_dists = []
-        times = []
-        for _ in range(n_runs):
-            # Thiết lập tham số mặc định
-            alpha, beta0, gamma = 0.5, 1.0, 1.0
-            if param_name == 'alpha':
-                alpha = val
-            elif param_name == 'beta0':
-                beta0 = val
-            elif param_name == 'gamma':
-                gamma = val
-
-            fa = FireflyAlgorithm(num_fireflies=25,
-                                  max_iter=100,
-                                  alpha=alpha,
-                                  beta0=beta0,
-                                  gamma=gamma,
-                                  mode="discrete",
-                                  distance_matrix=distances)
-            start = time.time()
-            best_path, best_dist = fa.run()
-            end = time.time()
-            best_dists.append(best_dist)
-            times.append(end - start)
-        avg_dist = np.mean(best_dists)
-        avg_time = np.mean(times)
-        print(f"{val:<7} | {avg_dist:<13.4f} | {avg_time:<11.4f}")
+def test_fa_discrete(distances, n_runs=5, **kwargs):
+    results = []
+    histories = []
+    for run in range(n_runs):
+        fa = FireflyAlgorithm(mode="discrete", distance_matrix=distances, **kwargs)
+        start = time.time()
+        best_sol, best_fit, history = fa.run()
+        end = time.time()
+        results.append((best_fit, end - start))
+        histories.append(history)
+        print(f"Run {run+1}/{n_runs} done: Best fitness = {best_fit:.6f}, Time = {end-start:.4f}s")
+    return results, histories
 
 def print_results_table(name, results):
     print(f"\n{name}")
     print("-" * 40)
-    print(f"{'Run':>3} | {'Distance':>12} | {'Time (s)':>10}")
+    print(f"{'Run':>3} | {'Best fitness':>12} | {'Time (s)':>10}")
     print("-" * 40)
-    for i, (dist, t) in enumerate(results, 1):
-        print(f"{i:3} | {dist:12.4f} | {t:10.4f}")
+    for i, (fit, t) in enumerate(results, 1):
+        print(f"{i:3} | {fit:12.6f} | {t:10.4f}")
     print("-" * 40)
+
+def plot_convergence(histories, title):
+    plt.figure(figsize=(8,5))
+    for h in histories:
+        plt.plot(h, alpha=0.3)
+    plt.title(title)
+    plt.xlabel("Iteration")
+    plt.ylabel("Best fitness")
+    plt.yscale("log")
+    plt.grid(True)
+    plt.show()
 
 def main():
+    # --- Test continuous (Ackley function) ---
+    print("Testing Firefly Algorithm on continuous problem (Ackley function)")
+    cont_results, cont_histories = test_fa_continuous(
+        n_runs=5,
+        num_fireflies=30,
+        max_iter=200,
+        alpha=0.3,
+        beta0=1.0,
+        gamma=1.0,
+        lower_bound=-32.768,
+        upper_bound=32.768,
+        dim=10,
+    )
+    print_results_table("Continuous problem results (Ackley):", cont_results)
+    plot_convergence(cont_histories, "FA Convergence on Ackley Function")
+
+    # --- Test discrete (TSP) ---
+    print("Testing Firefly Algorithm on discrete problem (TSP)")
     distances = np.load("data/distances.npy")
-    print("Testing Firefly Algorithm on TSP")
-    fa_results = test_fa_tsp(distances)
-    print_results_table("FA results (dist, time):", fa_results)
-
-    # Phân tích độ nhạy tham số alpha
-    parameter_sensitivity_analysis_fa(distances, 'alpha', [0.1, 0.3, 0.5, 0.7, 1.0])
-
-    # Phân tích độ nhạy tham số beta0
-    parameter_sensitivity_analysis_fa(distances, 'beta0', [0.1, 0.5, 1.0, 2.0, 5.0])
-
-    # Phân tích độ nhạy tham số gamma
-    parameter_sensitivity_analysis_fa(distances, 'gamma', [0.1, 0.5, 1.0, 2.0, 5.0])
+    disc_results, disc_histories = test_fa_discrete(
+        distances,
+        n_runs=5,
+        num_fireflies=30,
+        max_iter=200,
+        alpha=0.3,
+        beta0=1.0,
+        gamma=0.1,
+    )
+    print_results_table("Discrete TSP results:", disc_results)
+    plot_convergence(disc_histories, "FA Convergence on TSP")
 
 if __name__ == "__main__":
     main()
