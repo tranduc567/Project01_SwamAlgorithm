@@ -1,5 +1,82 @@
 import numpy as np
 
+import numpy as np
+
+def genetic_algorithm_continuous(func, dim, lower_bound, upper_bound, population_size=50, generations=500, mutation_rate=0.1, crossover_rate=0.8, verbose=False, seed=None):
+    """
+    Genetic Algorithm cho bài toán tối ưu hóa liên tục.
+
+    Args:
+        func (callable): Hàm mục tiêu nhận vector numpy 1D, trả về fitness (càng nhỏ càng tốt).
+        dim (int): Số chiều bài toán.
+        lower_bound (float): Giới hạn dưới của mỗi chiều.
+        upper_bound (float): Giới hạn trên của mỗi chiều.
+        population_size (int): Kích thước quần thể.
+        generations (int): Số thế hệ.
+        mutation_rate (float): Xác suất đột biến.
+        crossover_rate (float): Xác suất lai ghép.
+        verbose (bool): In tiến trình.
+        seed (int): random seed.
+
+    Returns:
+        best_sol (np.ndarray): nghiệm tốt nhất tìm được.
+        best_fit (float): giá trị hàm mục tiêu tại best_sol.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Khởi tạo quần thể ngẫu nhiên
+    population = np.random.uniform(lower_bound, upper_bound, (population_size, dim))
+
+    def fitness(ind):
+        return func(ind)
+
+    best_sol = None
+    best_fit = np.inf
+
+    for gen in range(generations):
+        # Tính fitness cho toàn bộ quần thể
+        fitnesses = np.array([fitness(ind) for ind in population])
+        
+        # Cập nhật nghiệm tốt nhất
+        min_idx = np.argmin(fitnesses)
+        if fitnesses[min_idx] < best_fit:
+            best_fit = fitnesses[min_idx]
+            best_sol = population[min_idx].copy()
+            if verbose:
+                print(f"Gen {gen+1}: Best fitness = {best_fit:.6f}")
+
+        # Chọn lọc theo tỉ lệ nghịch fitness (tỉ lệ thuận với 1/fitness vì min)
+        inv_fitness = 1.0 / (fitnesses + 1e-10)  # tránh chia 0
+        probs = inv_fitness / np.sum(inv_fitness)
+
+        new_population = []
+        while len(new_population) < population_size:
+            # Chọn cha mẹ
+            parents_idx = np.random.choice(population_size, 2, replace=False, p=probs)
+            parent1, parent2 = population[parents_idx[0]], population[parents_idx[1]]
+
+            # Lai ghép (crossover)
+            if np.random.rand() < crossover_rate:
+                cross_point = np.random.randint(1, dim)
+                child1 = np.concatenate([parent1[:cross_point], parent2[cross_point:]])
+                child2 = np.concatenate([parent2[:cross_point], parent1[cross_point:]])
+            else:
+                child1, child2 = parent1.copy(), parent2.copy()
+
+            # Đột biến (mutation)
+            for child in [child1, child2]:
+                if np.random.rand() < mutation_rate:
+                    mutate_idx = np.random.randint(dim)
+                    child[mutate_idx] = np.random.uniform(lower_bound, upper_bound)
+
+            new_population.extend([child1, child2])
+
+        population = np.array(new_population[:population_size])
+
+    return best_sol, best_fit
+
+
 def genetic_algorithm_tsp(dist_matrix, population_size=50, generations=200, mutation_rate=0.1):
     """
     Giải thuật di truyền (Genetic Algorithm) cho bài toán TSP.

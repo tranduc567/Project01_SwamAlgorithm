@@ -1,4 +1,9 @@
+import time
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D  # Dùng để vẽ 3Dplot
+
 
 def ackley_function(x):
     """
@@ -25,3 +30,22 @@ def ackley_function_2d(x, y):
     term1 = -a * np.exp(-b * np.sqrt(sum_sq / 2))
     term2 = -np.exp((np.cos(c * x) + np.cos(c * y)) / 2)
     return term1 + term2 + a + np.exp(1)
+
+def plot_ackley_surface(lower_bound=-32.768, upper_bound=32.768, step=0.5):
+    """
+    Vẽ surface plot 3D của hàm Ackley 2D.
+    """
+    x = np.arange(lower_bound, upper_bound, step)
+    y = np.arange(lower_bound, upper_bound, step)
+    X, Y = np.meshgrid(x, y)
+    Z = ackley_function_2d(X, Y)
+
+    fig = plt.figure(figsize=(10,7))
+    ax = fig.add_subplot(111, projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none')
+    ax.set_title('Ackley Function Landscape')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Fitness')
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()

@@ -1,5 +1,47 @@
 import numpy as np
 
+def hill_climbing_continuous(func, dim, lower_bound, upper_bound, max_iter=500, step_size=0.1, verbose=False, seed=None):
+    """
+    Hill Climbing cho bài toán tối ưu hóa liên tục.
+
+    Args:
+        func (callable): Hàm mục tiêu nhận đầu vào vector numpy 1D, trả về giá trị fitness (càng nhỏ càng tốt).
+        dim (int): Số chiều bài toán.
+        lower_bound (float): Giới hạn dưới của mỗi chiều.
+        upper_bound (float): Giới hạn trên của mỗi chiều.
+        max_iter (int): Số vòng lặp tối đa.
+        step_size (float): Bước nhảy để sinh điểm lân cận.
+        verbose (bool): In tiến trình khi True.
+        seed (int): Giá trị seed cho random (để tái lập kết quả).
+
+    Returns:
+        best_sol (np.ndarray): Điểm nghiệm tốt nhất tìm được.
+        best_fit (float): Giá trị hàm mục tiêu tại best_sol.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    # Khởi tạo ngẫu nhiên điểm bắt đầu trong không gian tìm kiếm
+    current_sol = np.random.uniform(lower_bound, upper_bound, dim)
+    current_fit = func(current_sol)
+    
+    for iteration in range(max_iter):
+        # Sinh điểm lân cận: cộng thêm vector ngẫu nhiên nhỏ trong [-step_size, step_size]
+        neighbor = current_sol + np.random.uniform(-step_size, step_size, dim)
+        # Giới hạn neighbor nằm trong biên
+        neighbor = np.clip(neighbor, lower_bound, upper_bound)
+        
+        neighbor_fit = func(neighbor)
+        
+        # Nếu điểm lân cận tốt hơn thì cập nhật
+        if neighbor_fit < current_fit:
+            current_sol = neighbor
+            current_fit = neighbor_fit
+            if verbose:
+                print(f"Iteration {iteration+1}: Improved fitness = {current_fit:.6f}")
+    
+    return current_sol, current_fit
+
 def hill_climbing_tsp(dist_matrix, max_iter=1000):
     """
     Hill Climbing cho bài toán TSP.
