@@ -24,79 +24,79 @@ def ackley(x, a=20, b=0.2, c=2*np.pi):
 # -------------------------
 
 # Grid for x,y
-n = 200
-x = np.linspace(-5, 5, n)
-y = np.linspace(-5, 5, n)
-X, Y = np.meshgrid(x, y)
+# n = 200
+# x = np.linspace(-5, 5, n)
+# y = np.linspace(-5, 5, n)
+# X, Y = np.meshgrid(x, y)
 
-# Compute Ackley on grid
-Z = np.zeros_like(X)
-for i in range(n):
-    for j in range(n):
-        Z[i, j] = ackley([X[i, j], Y[i, j]])
-
-
-# ---------------------------------------------------------
-# 1) 3D SURFACE
-# ---------------------------------------------------------
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(111, projection="3d")
-
-ax.plot_surface(X, Y, Z, rstride=3, cstride=3, linewidth=0.3)
-
-ax.set_title("Ackley function — 3D surface")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-ax.set_zlabel("f(x,y)")
-plt.show()
+# # Compute Ackley on grid
+# Z = np.zeros_like(X)
+# for i in range(n):
+#     for j in range(n):
+#         Z[i, j] = ackley([X[i, j], Y[i, j]])
 
 
-# ---------------------------------------------------------
-# 2) 3D WIREFRAME
-# ---------------------------------------------------------
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(111, projection="3d")
+# # ---------------------------------------------------------
+# # 1) 3D SURFACE
+# # ---------------------------------------------------------
+# fig = plt.figure(figsize=(10, 8))
+# ax = fig.add_subplot(111, projection="3d")
 
-ax.plot_wireframe(X, Y, Z, rstride=10, cstride=10, linewidth=0.35)
+# ax.plot_surface(X, Y, Z, rstride=3, cstride=3, linewidth=0.3)
 
-ax.set_title("Ackley function — 3D wireframe")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-ax.set_zlabel("f(x,y)")
-plt.show()
-
-
-# ---------------------------------------------------------
-# 3) 2D CONTOUR
-# ---------------------------------------------------------
-plt.figure(figsize=(10, 8))
-
-cp = plt.contourf(X, Y, Z, levels=50)
-plt.colorbar(cp)
-
-plt.scatter(0, 0, color="red", s=40)
-plt.text(0.1, 0.1, "global min", color="red")
-
-plt.title("Ackley function — filled contour")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
+# ax.set_title("Ackley function — 3D surface")
+# ax.set_xlabel("x")
+# ax.set_ylabel("y")
+# ax.set_zlabel("f(x,y)")
+# plt.show()
 
 
-# ---------------------------------------------------------
-# 4) 1D CROSS-SECTION (y = 0)
-# ---------------------------------------------------------
-xs = np.linspace(-5, 5, 600)
-ys = np.array([ackley([v, 0]) for v in xs])
+# # ---------------------------------------------------------
+# # 2) 3D WIREFRAME
+# # ---------------------------------------------------------
+# fig = plt.figure(figsize=(10, 8))
+# ax = fig.add_subplot(111, projection="3d")
 
-plt.figure(figsize=(12, 4))
-plt.plot(xs, ys, linewidth=2)
+# ax.plot_wireframe(X, Y, Z, rstride=10, cstride=10, linewidth=0.35)
 
-plt.axvline(0, linestyle="--")
-plt.scatter(0, ackley([0, 0]), color="red", s=40)
+# ax.set_title("Ackley function — 3D wireframe")
+# ax.set_xlabel("x")
+# ax.set_ylabel("y")
+# ax.set_zlabel("f(x,y)")
+# plt.show()
 
-plt.title("Ackley slice along y = 0 (1D cross section)")
-plt.xlabel("x")
-plt.ylabel("f(x,0)")
-plt.grid(True)
-plt.show()
+
+# # ---------------------------------------------------------
+# # 3) 2D CONTOUR
+# # ---------------------------------------------------------
+# plt.figure(figsize=(10, 8))
+
+# cp = plt.contourf(X, Y, Z, levels=50)
+# plt.colorbar(cp)
+
+# plt.scatter(0, 0, color="red", s=40)
+# plt.text(0.1, 0.1, "global min", color="red")
+
+# plt.title("Ackley function — filled contour")
+# plt.xlabel("x")
+# plt.ylabel("y")
+# plt.show()
+
+
+# # ---------------------------------------------------------
+# # 4) 1D CROSS-SECTION (y = 0)
+# # ---------------------------------------------------------
+# xs = np.linspace(-5, 5, 600)
+# ys = np.array([ackley([v, 0]) for v in xs])
+
+# plt.figure(figsize=(12, 4))
+# plt.plot(xs, ys, linewidth=2)
+
+# plt.axvline(0, linestyle="--")
+# plt.scatter(0, ackley([0, 0]), color="red", s=40)
+
+# plt.title("Ackley slice along y = 0 (1D cross section)")
+# plt.xlabel("x")
+# plt.ylabel("f(x,0)")
+# plt.grid(True)
+# plt.show()
