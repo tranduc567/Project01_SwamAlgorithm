@@ -1,34 +1,20 @@
-import matplotlib.pyplot as plt
-from src.ackley import ackley
-from src.PSO import PSO
+import numpy as np
 import time
 from src.utils import get_converge_epoch
-
-
-def pso_test(n_dims, c1, c2, w):
+import matplotlib.pyplot as plt
+from src.ackley import ackley
+from src.traditional.hc import hill_climbing_continuous
+def hc_test(n_dims):
     lb = [-5] * n_dims
     ub = [5] * n_dims
 
-    pso = PSO(
-        obj_func=ackley,
-        lb=lb,
-        ub=ub,
-        n_dims=n_dims,
-        pop_size=50,
-        epochs=200,
-        c1=c1,
-        c2=c2,
-        w=w,
-    )
-
-    # ---- Chạy tối ưu ----
     start = time.time()
-    best_pos, best_fit, history = pso.solve()
+    best_sol, best_fit, history = hill_climbing_continuous(obj_func=ackley, lb=lb, ub=ub, n_dims=n_dims, epochs=200)
     run_time = time.time() - start
     converge_epoch = get_converge_epoch(history=history, best_fit=best_fit)
 
-    print("=== KẾT QUẢ PSO ===")
-    print("Best position:", best_pos)
+    print("=== KẾT QUẢ Hill Climbing ===")
+    print("Best position:", best_sol)
     print("Best fitness :", best_fit)
     print("Run time: ", run_time)
     print("Converge epoch: ", converge_epoch)
@@ -40,9 +26,10 @@ def pso_test(n_dims, c1, c2, w):
     plt.plot(fitness_over_time)
     plt.xlabel("Epoch")
     plt.ylabel("Best fitness")
-    plt.title("PSO Convergence on Ackley Function")
+    plt.title("Hill Climbing Convergence on Ackley Function")
     plt.grid(True)
     plt.show()
 
+
 if __name__ == "__main__":
-    pso_test(n_dims=5, c1=2.05, c2=2.05, w=0.4)
+    hc_test(1)

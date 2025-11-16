@@ -1,126 +1,82 @@
 import numpy as np
-import random
+
 
 class ABC:
-    def __init__(self, 
-                 num_bees=30,
-                 limit=50,
-                 max_iter=200,
-                 mode="discrete",   # "discrete" for TSP, "continuous" for benchmark
-                 lower_bound=-5,
-                 upper_bound=5,
-                 dim=10,
-                 distance_matrix=None):
+    def __init__(self, obj_func, lb, ub, n_dims, pop_size, epochs, limits, seed=None):
+        self.obj_func = obj_func
+        self.lb = np.array(lb)
+        self.ub = np.array(ub)
+        self.n_dims = n_dims
+        self.pop_size = pop_size
+        self.epochs = epochs
+        self.limits = limits
+        self.rng = np.random.default_rng(seed)
 
-        self.num_bees = num_bees
-        self.limit = limit
-        self.max_iter = max_iter
-        self.mode = mode
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-        self.dim = dim
+        # Initialize population
+        self.pop = np.random.uniform(self.lb, self.ub, (pop_size, n_dims))
+        self.fitness = np.apply_along_axis(self.obj_func, 1, self.pop)
 
-        # TSP dùng matrix
-        self.distance_matrix = distance_matrix
+        # Initialize trials (for scout phase)
+        self.trials = np.zeros(pop_size)
 
-        # Lưu trữ
-        self.food_sources = []
-        self.fitness = []
-        self.trial = []
+        # Find the best solution
+        self.best_solution = self.pop[np.argmin(self.fitness)].copy()
+        self.best_fitness = np.min(self.fitness)
 
-    # --------------------------
-    #  FITNESS
-    # --------------------------
-    def tsp_distance(self, path):
-        """Tính tổng độ dài tour"""
-        d = 0
-        for i in range(len(path)-1):
-            d += self.distance_matrix[path[i], path[i+1]]
-        d += self.distance_matrix[path[-1], path[0]]
-        return d
+    def correct_solution(self, sol):
+        return np.clip(sol, self.lb, self.ub)
 
-    def continuous_f(self, x):
-        """Ví dụ Sphere"""
-        return np.sum(x**2)
+    def solve(self):
+        history = []
 
-    def evaluate(self, solution):
-        if self.mode == "discrete":
-            return self.tsp_distance(solution)
-        else:
-            return self.continuous_f(solution)
+        for ep in range(1, self.epochs + 1):
+            # --- Employed bees phase ---
+            for i in range(self.pop_size):
+                rdx = self.rng.choice(list(set(range(self.pop_size)) - {i}))
+                phi = self.rng.uniform(-1, 1, self.n_dims)
+                new_pos = self.pop[i] + phi * (self.pop[rdx] - self.pop[i])
+                new_pos = self.correct_solution(new_pos)
+                new_fit = self.obj_func(new_pos)
 
-    # --------------------------
-    #  KHỞI TẠO
-    # --------------------------
-    def init_solution(self):
-        if self.mode == "discrete":
-            return np.random.permutation(len(self.distance_matrix))
-        else:
-            return np.random.uniform(self.lower_bound, self.upper_bound, self.dim)
-
-    def neighbor(self, solution):
-        if self.mode == "discrete":
-            # swap 2 vị trí (TSP)
-            i, j = random.sample(range(len(solution)), 2)
-            new = solution.copy()
-            new[i], new[j] = new[j], new[i]
-            return new
-        else:
-            # perturb continuous
-            phi = np.random.uniform(-1, 1, self.dim)
-            return solution + phi * (solution - np.random.uniform(self.lower_bound, self.upper_bound, self.dim))
-
-    # --------------------------
-    #  MAIN RUN
-    # --------------------------
-    def run(self):
-        # init
-        self.food_sources = [self.init_solution() for _ in range(self.num_bees)]
-        self.fitness = [self.evaluate(sol) for sol in self.food_sources]
-        self.trial = [0] * self.num_bees
-
-        best_sol = self.food_sources[np.argmin(self.fitness)].copy()
-        best_val = np.min(self.fitness)
-
-        for _ in range(self.max_iter):
-
-            # 1. Employed Bees
-            for i in range(self.num_bees):
-                new_sol = self.neighbor(self.food_sources[i])
-                new_fit = self.evaluate(new_sol)
                 if new_fit < self.fitness[i]:
-                    self.food_sources[i] = new_sol
+                    self.pop[i] = new_pos
                     self.fitness[i] = new_fit
-                    self.trial[i] = 0
+                    self.trials[i] = 0
                 else:
-                    self.trial[i] += 1
+                    self.trials[i] += 1
 
-            # 2. Onlooker Bees
-            prob = (1 / (1 + np.array(self.fitness)))
-            prob /= np.sum(prob)
+            # --- Onlooker bees phase ---
+            prob = (1 / (1 + self.fitness))  # Convert fitness to probability (higher fitness → lower prob)
+            prob /= prob.sum()
+            for i in range(self.pop_size):
+                selected = self.rng.choice(self.pop_size, p=prob)
+                rdx = self.rng.choice(list(set(range(self.pop_size)) - {selected}))
+                phi = self.rng.uniform(-1, 1, self.n_dims)
+                new_pos = self.pop[selected] + phi * (self.pop[rdx] - self.pop[selected])
+                new_pos = self.correct_solution(new_pos)
+                new_fit = self.obj_func(new_pos)
 
-            for _ in range(self.num_bees):
-                i = np.random.choice(range(self.num_bees), p=prob)
-                new_sol = self.neighbor(self.food_sources[i])
-                new_fit = self.evaluate(new_sol)
-                if new_fit < self.fitness[i]:
-                    self.food_sources[i] = new_sol
-                    self.fitness[i] = new_fit
-                    self.trial[i] = 0
+                if new_fit < self.fitness[selected]:
+                    self.pop[selected] = new_pos
+                    self.fitness[selected] = new_fit
+                    self.trials[selected] = 0
                 else:
-                    self.trial[i] += 1
+                    self.trials[selected] += 1
 
-            # 3. Scout Bees
-            for i in range(self.num_bees):
-                if self.trial[i] > self.limit:
-                    self.food_sources[i] = self.init_solution()
-                    self.fitness[i] = self.evaluate(self.food_sources[i])
-                    self.trial[i] = 0
+            # --- Scout bees phase ---
+            abandoned = np.where(self.trials >= self.limits)[0]
+            for i in abandoned:
+                self.pop[i] = np.random.uniform(self.lb, self.ub, self.n_dims)
+                self.fitness[i] = self.obj_func(self.pop[i])
+                self.trials[i] = 0
 
-            # update best
-            if np.min(self.fitness) < best_val:
-                idx = np.argmin(self.fitness)
-                best_val = self.fitness[idx]
-                best_sol = self.food_sources[idx].copy()
+            # Update global best
+            best_idx = np.argmin(self.fitness)
+            if self.fitness[best_idx] < self.best_fitness:
+                self.best_solution = self.pop[best_idx]
+                self.best_fitness = self.fitness[best_idx]
 
-        return best_sol, best_val
+            # Save history
+            history.append([self.best_solution, self.best_fitness])
+
+        return self.best_solution, self.best_fitness, history

@@ -1,33 +1,31 @@
 import matplotlib.pyplot as plt
 from src.ackley import ackley
-from src.PSO import PSO
+from src.CSA import CSA
 import time
 from src.utils import get_converge_epoch
 
 
-def pso_test(n_dims, c1, c2, w):
+def csa_test(n_dims, p_a):
     lb = [-5] * n_dims
     ub = [5] * n_dims
 
-    pso = PSO(
+    csa = CSA(
         obj_func=ackley,
         lb=lb,
         ub=ub,
         n_dims=n_dims,
         pop_size=50,
         epochs=200,
-        c1=c1,
-        c2=c2,
-        w=w,
+        p_a=p_a
     )
 
     # ---- Chạy tối ưu ----
     start = time.time()
-    best_pos, best_fit, history = pso.solve()
+    best_pos, best_fit, history = csa.solve()
     run_time = time.time() - start
     converge_epoch = get_converge_epoch(history=history, best_fit=best_fit)
 
-    print("=== KẾT QUẢ PSO ===")
+    print("=== KẾT QUẢ CSA ===")
     print("Best position:", best_pos)
     print("Best fitness :", best_fit)
     print("Run time: ", run_time)
@@ -40,9 +38,9 @@ def pso_test(n_dims, c1, c2, w):
     plt.plot(fitness_over_time)
     plt.xlabel("Epoch")
     plt.ylabel("Best fitness")
-    plt.title("PSO Convergence on Ackley Function")
+    plt.title("CSA Convergence on Ackley Function")
     plt.grid(True)
     plt.show()
 
 if __name__ == "__main__":
-    pso_test(n_dims=5, c1=2.05, c2=2.05, w=0.4)
+    csa_test(n_dims=2, p_a=0.03)

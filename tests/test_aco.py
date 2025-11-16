@@ -1,69 +1,84 @@
-import time
 import numpy as np
-from src.aco import AntColony
+from src.ACO import ACO, ACOProblem
+from typing import List
+import matplotlib.pyplot as plt
+import time
+from src.utils import get_converge_epoch
 
 
-def test_aco_tsp(distances, n_runs=5, alpha=1, beta=2, decay=0.1):
-    results = []
-    for _ in range(n_runs):
-        aco = AntColony(distances, n_ants=10, n_best=5, n_iterations=200,
-                        decay=decay, alpha=alpha, beta=beta)
-        start = time.time()
-        best_path, best_dist = aco.run()
-        end = time.time()
-        results.append((best_dist, end - start))
-    return results
+class TSPProblem(ACOProblem):
+    def __init__(self, distance_matrix: np.ndarray):
+        n = distance_matrix.shape[0]
+        super().__init__(n_decisions=n, objective=None)
+        self.distance_matrix = distance_matrix
+        self.solution = [None] * n
+        self.current_index = 0
+
+    def feasible_solution(self) -> List[int]:
+        # các thành phố chưa đi
+        return [i for i in range(self.n_decisions) if i not in self.solution[:self.current_index]]
+
+    def make_decision(self, index: int, value: int):
+        self.solution[index] = value
+        self.current_index += 1
+
+    def is_complete(self) -> bool:
+        return self.current_index >= self.n_decisions
+
+    def build(self) -> List[int]:
+        return [int(x) for x in self.solution]
 
 
-def sensitivity_analysis(distances, param_name, param_values, n_runs=5):
-    print(f"\nParameter Sensitivity Analysis on {param_name} (ACO)")
-    print(f"{param_name:<7} | {'Avg Best Dist':<13} | {'Avg Time (s)':<11}")
-    print("-" * 40)
-    for val in param_values:
-        best_dists = []
-        times = []
-        for _ in range(n_runs):
-            # Thiết lập tham số mặc định
-            alpha, beta, decay = 1, 2, 0.1
-            if param_name == 'alpha':
-                alpha = val
-            elif param_name == 'beta':
-                beta = val
-            elif param_name == 'decay':
-                decay = val
-            
-            aco = AntColony(distances, n_ants=10, n_best=5, n_iterations=50,
-                            decay=decay, alpha=alpha, beta=beta)
-            start = time.time()
-            best_path, best_dist = aco.run()
-            end = time.time()
-            best_dists.append(best_dist)
-            times.append(end - start)
-        avg_dist = np.mean(best_dists)
-        avg_time = np.mean(times)
-        print(f"{val:<7} | {avg_dist:<13.4f} | {avg_time:<11.4f}")
+    def evaluate(self, solution: List[int]) -> float:
+        # tổng quãng đường theo chu trình (quay về điểm đầu)
+        dist = 0.0
+        for i in range(len(solution)):
+            dist += self.distance_matrix[solution[i-1], solution[i]]
+        return dist
 
-def print_results_table(name, results):
-    print(f"\n{name}")
-    print("-" * 40)
-    print(f"{'Run':>3} | {'Distance':>12} | {'Time (s)':>10}")
-    print("-" * 40)
-    for i, (dist, t) in enumerate(results, 1):
-        print(f"{i:3} | {dist:12.4f} | {t:10.4f}")
-    print("-" * 40)
 
-def main():
-    distances = np.load("data/distances.npy")
-    print("Testing ACO on TSP")
-    aco_results = test_aco_tsp(distances)
-    print_results_table("ACO results (dist, time):", aco_results)
-    # --- Phân tích độ nhạy tham số alpha ---
-    sensitivity_analysis(distances, 'alpha', [0.5, 1, 2, 5])
-    # --- Phân tích độ nhạy tham số beta ---
-    sensitivity_analysis(distances, 'beta', [0.5, 1, 2, 5])
-    # --- Phân tích độ nhạy tham số decay ---
-    sensitivity_analysis(distances, 'decay', [0.01, 0.05, 0.1, 0.3])
+
+def test_aco(n_cities, alpha, beta, rho, seed=42):
+    rng = np.random.default_rng(seed)
+    distance_matrix = rng.integers(low=1, high=100, size=(n_cities, n_cities)).astype(float)
+
+    # Đặt đường chéo = 0
+    np.fill_diagonal(distance_matrix, 0)
+
+    # Đảm bảo ma trận đối xứng (d[i,j] = d[j,i])
+    i_lower = np.tril_indices(n_cities, -1)
+    distance_matrix[i_lower] = distance_matrix.T[i_lower]
+
+    problem = TSPProblem(distance_matrix)
+
+    aco = ACO(problem=problem, n_ants=50, epochs=200, alpha=alpha, beta=beta, rho=rho)
+
+    start = time.time()
+    best_solution, best_value, history = aco.solve()
+    run_time = time.time() - start
+    converge_epoch = get_converge_epoch(history=history, best_fit=best_value)
+
+
+    print(f"\n=== KẾT QUẢ ACO {n_cities} thành phố ===")
+    print("Best tour:", best_solution)
+    print("Best distance:", best_value)
+    print("Run time: ", run_time)
+    print("Converge epoch: ", converge_epoch)
+
+    # Vẽ hội tụ
+    # Lấy fitness từ history
+    fitness_over_time = [item[1] for item in history]  # item[1] = best_value
+
+    plt.plot(fitness_over_time, marker='o')
+    plt.xlabel("Epoch")
+    plt.ylabel("Best value")
+    plt.title("ACO Convergence")
+    plt.grid(True)
+    plt.show()
+
+
 
 if __name__ == "__main__":
-   # Load file distances.npy
-    main()
+    n_cities=20
+    seed = 123
+    test_aco(n_cities=n_cities, alpha=0.1, beta=0.2, rho=0.5, seed=seed)

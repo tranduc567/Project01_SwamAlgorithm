@@ -1,35 +1,46 @@
+import matplotlib.pyplot as plt
+from src.ackley import ackley
+from src.ABC import ABC
 import time
-import numpy as np
-from src.abc import ABC  # Đảm bảo bạn import đúng class ABC
+from src.utils import get_converge_epoch
 
-def test_abc_tsp(distances, n_runs=5, num_bees=30, limit=50, max_iter=200):
-    results = []
-    for _ in range(n_runs):
-        abc = ABC(num_bees=num_bees,
-                  limit=limit,
-                  max_iter=max_iter,
-                  mode="discrete",
-                  distance_matrix=distances)
-        start = time.time()
-        best_path, best_dist = abc.run()
-        end = time.time()
-        results.append((best_dist, end - start))
-    return results
 
-def print_results_table(name, results):
-    print(f"\n{name}")
-    print("-" * 40)
-    print(f"{'Run':>3} | {'Distance':>12} | {'Time (s)':>10}")
-    print("-" * 40)
-    for i, (dist, t) in enumerate(results, 1):
-        print(f"{i:3} | {dist:12.4f} | {t:10.4f}")
-    print("-" * 40)
+def abc_test(n_dims, limits):
+    lb = [-5] * n_dims
+    ub = [5] * n_dims
 
-def main():
-    distances = np.load("data/distances.npy")
-    print("Testing ABC on TSP")
-    abc_results = test_abc_tsp(distances)
-    print_results_table("ABC results (dist, time):", abc_results)
+    abc = ABC(
+        obj_func=ackley,
+        lb=lb,
+        ub=ub,
+        n_dims=n_dims,
+        pop_size=50,
+        epochs=200,
+        limits=limits
+    )
+
+    # ---- Chạy tối ưu ----
+    start = time.time()
+    best_pos, best_fit, history = abc.solve()
+    run_time = time.time() - start
+    converge_epoch = get_converge_epoch(history=history, best_fit=best_fit)
+
+    print("=== KẾT QUẢ PSO ===")
+    print("Best position:", best_pos)
+    print("Best fitness :", best_fit)
+    print("Run time: ", run_time)
+    print("Converge epoch: ", converge_epoch)
+
+    # Lấy fitness qua các epoch
+    fitness_over_time = [h[1] for h in history]
+
+    plt.figure(figsize=(7, 4))
+    plt.plot(fitness_over_time)
+    plt.xlabel("Epoch")
+    plt.ylabel("Best fitness")
+    plt.title("ABC Convergence on Ackley Function")
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
-    main()
+    abc_test(n_dims=2, limits=10)
